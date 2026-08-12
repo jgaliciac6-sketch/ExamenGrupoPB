@@ -7,5 +7,6 @@ const router = Router();
 router.use(limiter);
 
 router.get("/getUsuarios", authenticate, UserController.GetUsers);
+router.post("/user", UserController.CreateUser);
 
 export default router;

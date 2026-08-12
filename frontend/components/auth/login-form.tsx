@@ -1,7 +1,8 @@
 'use client'
 
-import { ArrowLeft } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -9,16 +10,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { loginAction } from '@/lib/actions/auth'
+import { saveSession } from '@/lib/utils/token'
 
 export function LoginForm() {
-  const [email, setEmail] = useState('')
+  const router = useRouter()
+  const [empId, setEmpId] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    // TODO: Conectar aquí con la autenticación real (AWS API Gateway + Lambda).
-    // Este botón NO realiza autenticación, fetch ni Server Actions por ahora.
+    setError('')
+    setLoading(true)
+
+    const result = await loginAction({
+      empId: Number(empId),
+      empPassword: password,
+    })
+
+    if (!result.success || !result.data) {
+      setError(result.message)
+      setLoading(false)
+      return
+    }
+
+    saveSession(result.data.token, {
+      empId: result.data.empId,
+      empNombre: result.data.empNombre,
+    })
+
+    router.push('/dashboard')
   }
 
   return (
@@ -29,16 +53,28 @@ export function LoginForm() {
       </CardHeader>
       <CardContent className="pb-6">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {error && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+            >
+              <AlertCircle className="mt-0.5 size-5 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Correo electrónico</Label>
+            <Label htmlFor="empId">ID de empleado</Label>
             <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              placeholder="admin@nexusgaming.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="empId"
+              name="empId"
+              type="number"
+              inputMode="numeric"
+              autoComplete="username"
+              placeholder="1234"
+              value={empId}
+              onChange={(e) => setEmpId(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
@@ -53,6 +89,7 @@ export function LoginForm() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
@@ -62,12 +99,20 @@ export function LoginForm() {
               name="remember"
               checked={remember}
               onChange={(e) => setRemember(e.target.checked)}
+              disabled={loading}
             />
             <span>Recordarme</span>
           </label>
 
-          <Button type="submit" className="h-11 w-full text-base">
-            Iniciar sesión
+          <Button type="submit" className="h-11 w-full text-base" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Ingresando...
+              </>
+            ) : (
+              'Iniciar sesión'
+            )}
           </Button>
         </form>
 

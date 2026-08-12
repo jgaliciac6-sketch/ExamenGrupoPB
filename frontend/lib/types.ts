@@ -35,3 +35,37 @@ export interface DashboardStat {
   value: string
   hint: string
 }
+
+// Tipos alineados con el backend (ver backend/src/models y controllers).
+
+export interface ActionResult<T = undefined> {
+  success: boolean
+  message: string
+  data?: T
+}
+
+export interface LoginResult {
+  token: string
+  empId: number
+  empNombre: string
+}
+
+export interface Usuario {
+  USRId: number
+  USRNombre: string
+  USRCorreo: string
+  USRTelefono: string
+  USRGeneroFavorito: string
+  USRPlataformaFavorita: string
+  USRComentario?: string | null
+  USREstado: boolean
+}
+
+export interface UsuarioFormData {
+  USRNombre: string
+  USRCorreo: string
+  USRTelefono: string
+  USRGeneroFavorito: string
+  USRPlataformaFavorita: string
+  USRComentario?: string
+}

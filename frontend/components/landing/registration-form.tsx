@@ -11,7 +11,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { createUsuarioAction } from '@/lib/actions/usuario'
 import { GENRES, PLATFORMS } from '@/lib/mock-data'
+import { toastManager } from '@/lib/toast'
 import type { RegistrationFormData } from '@/lib/types'
 
 type FormStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -28,8 +30,8 @@ const INITIAL_DATA: RegistrationFormData = {
 
 export function RegistrationForm() {
   const [data, setData] = useState<RegistrationFormData>(INITIAL_DATA)
-  // El estado permanece en 'idle': aún no se conecta ninguna API.
-  const [status] = useState<FormStatus>('idle')
+  const [status, setStatus] = useState<FormStatus>('idle')
+  const [feedback, setFeedback] = useState('')
 
   function update<K extends keyof RegistrationFormData>(
     key: K,
@@ -40,12 +42,36 @@ export function RegistrationForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    // TODO: Conectar aquí con la API (AWS API Gateway + Lambda).
-    // Este botón todavía NO realiza ninguna llamada de red.
-    // Ejemplo futuro:
-    // setStatus('loading')
-    // const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) })
-    // setStatus(res.ok ? 'success' : 'error')
+    setStatus('loading')
+
+    const result = await createUsuarioAction({
+      USRNombre: data.name,
+      USRCorreo: data.email,
+      USRTelefono: data.phone,
+      USRGeneroFavorito: data.favoriteGenre,
+      USRPlataformaFavorita: data.platform,
+      USRComentario: data.message,
+    })
+
+    if (!result.success) {
+      setStatus('error')
+      setFeedback(result.message)
+      toastManager.add({
+        type: 'error',
+        title: 'No se pudo completar el registro',
+        description: result.message,
+      })
+      return
+    }
+
+    setStatus('success')
+    setFeedback(result.message)
+    setData(INITIAL_DATA)
+    toastManager.add({
+      type: 'success',
+      title: '¡Registro exitoso!',
+      description: result.message,
+    })
   }
 
   const isLoading = status === 'loading'
@@ -68,14 +94,13 @@ export function RegistrationForm() {
 
         <Card className="mt-10">
           <CardContent className="py-8">
-            {/* Estados futuros (Loading / Success / Error) preparados para la integración */}
             {status === 'success' && (
               <div
                 role="status"
                 className="mb-6 flex items-start gap-3 rounded-xl border border-accent/30 bg-accent/10 p-4 text-sm text-accent"
               >
                 <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
-                <p>¡Registro completado! Pronto recibirás noticias de Nexus.</p>
+                <p>{feedback || '¡Registro completado! Pronto recibirás noticias de Nexus.'}</p>
               </div>
             )}
             {status === 'error' && (
@@ -84,7 +109,7 @@ export function RegistrationForm() {
                 className="mb-6 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
               >
                 <AlertCircle className="mt-0.5 size-5 shrink-0" />
-                <p>Ocurrió un error al enviar el registro. Intenta nuevamente.</p>
+                <p>{feedback || 'Ocurrió un error al enviar el registro. Intenta nuevamente.'}</p>
               </div>
             )}
 
@@ -127,7 +152,8 @@ export function RegistrationForm() {
                     name="phone"
                     type="tel"
                     autoComplete="tel"
-                    placeholder="5555-5555"
+                    placeholder="55555555"
+                    maxLength={8}
                     value={data.phone}
                     onChange={(e) => update('phone', e.target.value)}
                     disabled={isLoading}

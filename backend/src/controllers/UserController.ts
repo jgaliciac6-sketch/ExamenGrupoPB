@@ -32,4 +32,66 @@ export class UserController {
         .json({ message: "Eror intentando traer usuarios: ", error });
     }
   };
+
+  static CreateUser = async (req: Request, res: Response) => {
+    const client = await pool.connect();
+
+    try {
+      const objUsuario = req.body as IUsuario;
+
+      await client.query("BEGIN");
+
+      const createAns = await client.query(
+        `SELECT "fn_gpb_set_user_create"(
+        $1, $2, $3, $4, $5, $6
+      ) AS success`,
+        [
+          objUsuario.USRNombre,
+          objUsuario.USRCorreo,
+          objUsuario.USRTelefono,
+          objUsuario.USRGeneroFavorito,
+          objUsuario.USRPlataformaFavorita,
+          objUsuario.USRComentario ?? null,
+        ],
+      );
+
+      const usrId = createAns.rows[0].success;
+
+      if (usrId === -1) {
+        await client.query("ROLLBACK");
+
+        return res.status(400).json({
+          message: "El correo ya se encuentra registrado",
+        });
+      }
+
+      if (!usrId || usrId === 0) {
+        await client.query("ROLLBACK");
+
+        return res.status(400).json({
+          message: "Error al crear usuario",
+        });
+      }
+
+      await client.query("COMMIT");
+
+      return res.status(201).json({
+        message: "Usuario creado correctamente",
+        data: {
+          usrId,
+        },
+      });
+    } catch (error: any) {
+      await client.query("ROLLBACK");
+
+      logger.error("Error al crear usuario: ", error);
+
+      return res.status(500).json({
+        message: "Error interno del servidor",
+        error: error.message,
+      });
+    } finally {
+      client.release();
+    }
+  };
 }
