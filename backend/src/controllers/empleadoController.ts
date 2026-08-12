@@ -15,7 +15,7 @@ export class EmpleadoController {
         return res.status(400).json({ message: "Faltan credenciales" });
       }
 
-      const query = 'SELECT * FROM "fn_spc_get_empleado_login"($1, $2)';
+      const query = 'SELECT * FROM "fn_gpb_get_empleado_login"($1, $2)';
       const values = [EMPId, EMPPassword];
 
       const ans = await pool.query<IEmpleado>(query, values);
