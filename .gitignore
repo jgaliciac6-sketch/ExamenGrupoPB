@@ -3,15 +3,15 @@ node_modules/
 .next/
 dist/
 out/
-.env
-.env.*
+# .env
+# .env.*
 
 # .NET / backend
 bin/
 obj/
 *.user
 *.suo
-.env
+#.env
 
 # General
 .DS_Store
